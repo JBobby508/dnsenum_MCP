@@ -25,7 +25,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Default configuration
-DEFAULT_KALI_SERVER = "http://192.168.1.170:5000"
+DEFAULT_KALI_SERVER = "http://<IP>:5000"
 DEFAULT_REQUEST_TIMEOUT = 300  # 5 minutes default timeout for DNS enumeration
 
 class KaliToolsClient:
