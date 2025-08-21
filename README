@@ -1,0 +1,275 @@
+# DNSEnum MCP Server
+
+A Model Context Protocol (MCP) server that provides DNS enumeration capabilities through the DNSEnum tool on Kali Linux. This server enables AI agents like Claude to perform comprehensive DNS reconnaissance for web application testing and security assessments.
+
+## Features
+
+- **Comprehensive DNS Enumeration** - A, AAAA, MX, NS, SOA, TXT, CNAME record discovery
+- **Subdomain Brute Forcing** - Custom wordlist support with multi-threading
+- **Zone Transfer Attempts** - Automatic AXFR testing
+- **Reverse DNS Lookups** - IP to hostname resolution
+- **WHOIS Integration** - Domain registration information
+- **Google Scraping** - Additional subdomain discovery via search engines
+- **Structured Output** - Parsed DNS records and statistics
+- **Health Monitoring** - Server status and tool availability checks
+
+## Architecture
+
+```
+Claude Desktop ←→ MCP Client ←→ Kali API Server ←→ DNSEnum Tool
+```
+
+- **MCP Client** (`MCPserver_web.py`) - Connects Claude to the Kali server
+- **Kali API Server** (`kali_server_dnsenum.py`) - Executes DNSEnum and parses results
+- **DNSEnum Tool** - Performs the actual DNS enumeration
+
+## Prerequisites
+
+### Kali Linux Machine
+```bash
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install DNSEnum
+sudo apt install dnsenum -y
+
+# Install Python dependencies
+pip3 install flask paramiko requests
+```
+
+### Client Machine (Running Claude Desktop)
+```bash
+# Install MCP dependencies
+pip3 install fastmcp requests
+```
+
+## Installation
+
+### 1. Clone/Download Files
+```bash
+# Create project directory
+mkdir WebbMCP && cd WebbMCP
+
+# Download the MCP client and server files
+# Place MCPserver_web.py and kali_server_dnsenum.py in this directory
+```
+
+### 2. Configure Kali Server
+```bash
+# On your Kali Linux machine, start the API server
+python3 kali_server_dnsenum.py --port 5000
+
+# Optional: Run in debug mode
+python3 kali_server_dnsenum.py --port 5000 --debug
+```
+
+### 3. Configure Claude Desktop
+
+**Windows:**
+```cmd
+notepad "%APPDATA%\Claude\claude_desktop_config.json"
+```
+
+**macOS:**
+```bash
+nano ~/Library/Application\ Support/Claude/claude_desktop_config.json
+```
+
+**Linux:**
+```bash
+nano ~/.config/Claude/claude_desktop_config.json
+```
+
+**Configuration:**
+```json
+{
+  "mcpServers": {
+    "dnsenum-kali": {
+      "command": "python3",
+      "args": [
+        "/full/path/to/MCPserver_web.py",
+        "--server",
+        "http://YOUR_KALI_IP:5000",
+        "--debug"
+      ]
+    }
+  }
+}
+```
+
+### 4. Test Installation
+```bash
+# Test MCP client connection
+python3 MCPserver_web.py --server http://YOUR_KALI_IP:5000 --debug
+
+# Test Kali server health
+curl http://YOUR_KALI_IP:5000/health
+```
+
+## Usage
+
+### Basic DNS Enumeration
+```
+"Perform DNS enumeration on example.com"
+```
+
+### Advanced Reconnaissance
+```
+"Run comprehensive DNS scan on target.com with:
+- Custom wordlist /usr/share/wordlists/dirb/small.txt
+- Enable reverse DNS lookups
+- Enable WHOIS queries
+- Use 10 threads
+- 10-minute timeout"
+```
+
+### Bug Bounty Research
+```
+"Help me map the DNS infrastructure for company.com:
+- Use DNS server 8.8.8.8
+- Enable Google scraping for additional subdomains
+- Look for development and staging environments"
+```
+
+### Available Tools
+
+#### `dnsenum_scan`
+Comprehensive DNS enumeration with full DNSEnum capabilities.
+
+**Parameters:**
+- `domain` (required) - Target domain to enumerate
+- `wordlist` - Custom wordlist path (default: DNSEnum default)
+- `dns_server` - Custom DNS server (e.g., "8.8.8.8")
+- `enable_reverse` - Enable reverse DNS lookups
+- `enable_whois` - Enable WHOIS queries
+- `enable_google_scraping` - Enable Google search scraping
+- `threads` - Thread count (1-50, default: 5)
+- `timeout` - Scan timeout in seconds (default: 300)
+- `additional_args` - Extra DNSEnum arguments
+
+#### `server_health`
+Check the status and availability of the Kali server and DNSEnum tool.
+
+## Output Format
+
+The DNSEnum tool returns structured data including:
+
+```json
+{
+  "success": true,
+  "stdout": "Raw DNSEnum output...",
+  "discovered_subdomains": ["www.example.com", "mail.example.com"],
+  "dns_records": {
+    "A": [{"hostname": "www.example.com", "ip": "192.168.1.1"}],
+    "MX": [{"domain": "example.com", "priority": 10, "mx_server": "mail.example.com"}],
+    "NS": [{"domain": "example.com", "ns_server": "ns1.example.com"}]
+  },
+  "scan_summary": {
+    "total_subdomains": 15,
+    "unique_ips": ["192.168.1.1", "192.168.1.2"],
+    "zone_transfer_attempted": true,
+    "zone_transfer_successful": false
+  }
+}
+```
+
+## Common Wordlists
+
+DNSEnum comes with several useful wordlists:
+
+```bash
+# Default DNSEnum wordlist
+/usr/share/dnsenum/dns.txt
+
+# DIRB wordlists
+/usr/share/wordlists/dirb/small.txt
+/usr/share/wordlists/dirb/common.txt
+
+# SecLists (if installed)
+/usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt
+```
+
+## Troubleshooting
+
+### MCP Client Won't Start
+```bash
+# Check if FastMCP is installed
+python3 -c "import fastmcp; print('FastMCP OK')"
+
+# Test direct connection
+python3 MCPserver_web.py --server http://YOUR_KALI_IP:5000 --debug
+```
+
+### Kali Server Connection Issues
+```bash
+# Test server connectivity
+ping YOUR_KALI_IP
+telnet YOUR_KALI_IP 5000
+
+# Check if DNSEnum is installed
+which dnsenum
+dnsenum --version
+```
+
+### Claude Desktop Not Recognizing MCP
+1. Verify config file location and JSON syntax
+2. Use absolute paths in configuration
+3. Restart Claude Desktop completely
+4. Check Claude Desktop logs for errors
+
+### Permission Issues
+```bash
+# Make scripts executable
+chmod +x MCPserver_web.py
+chmod +x kali_server_dnsenum.py
+
+# Check Python path
+which python3
+```
+
+## Security Considerations
+
+- **Authorized Testing Only** - Only use on domains you own or have permission to test
+- **Rate Limiting** - Use appropriate thread counts to avoid overwhelming targets
+- **Network Visibility** - DNS queries may be logged by target infrastructure
+- **OPSEC** - Consider using custom DNS servers to reduce attribution
+
+## API Endpoints
+
+The Kali server exposes these endpoints:
+
+- `GET /health` - Server health and tool status
+- `POST /api/tools/dnsenum` - Execute DNSEnum scan
+
+## Configuration Options
+
+### Kali Server Arguments
+```bash
+python3 kali_server_dnsenum.py --help
+  --debug          Enable debug logging
+  --port PORT      API server port (default: 5000)
+```
+
+### MCP Client Arguments
+```bash
+python3 MCPserver_web.py --help
+  --server URL     Kali server URL
+  --timeout SECS   Request timeout (default: 300)
+  --debug          Enable debug logging
+```
+
+## Contributing
+
+This MCP server is designed for educational and authorized security testing purposes. Contributions for additional DNS enumeration features, better parsing, or integration with other tools are welcome.
+
+## License
+
+Use responsibly and only on systems you own or have explicit permission to test.
+
+## Support
+
+For issues:
+1. Check the troubleshooting section
+2. Review server and client logs with `--debug`
+3. Verify network connectivity between components
+4. Ensure all dependencies are properly installed
